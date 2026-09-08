@@ -1,0 +1,18 @@
+export PATH="/opt/nvim-linux-x86_64/bin:$PATH"
+. "$HOME/.local/bin/env"
+eval "$(starship init zsh)"
+
+function y() {
+    local tmp cwd
+    tmp="$(mktemp -t "yazi-cwd.XXXXXX")"
+
+    command yazi "$@" --cwd-file="$tmp"
+
+    IFS= read -r -d '' cwd < "$tmp"
+
+    if [[ -n "$cwd" && "$cwd" != "$PWD" ]]; then
+        builtin cd -- "$cwd"
+    fi
+
+    rm -f "$tmp"
+}
