@@ -16,3 +16,16 @@ function y() {
 
     rm -f "$tmp"
 }
+
+# Homebrew
+if command -v brew >/dev/null 2>&1; then
+  eval "$(brew shellenv)"
+
+  if [[ -d "$(brew --prefix llvm 2>/dev/null)/bin" ]]; then
+    export PATH="$(brew --prefix llvm)/bin:$PATH"
+  fi
+
+  if [[ -d "$(brew --prefix openjdk@21 2>/dev/null)/bin" ]]; then
+    export PATH="$(brew --prefix openjdk@21)/bin:$PATH"
+  fi
+fi
