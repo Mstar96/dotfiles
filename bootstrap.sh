@@ -368,6 +368,121 @@ verify() {
   echo "开发环境安装完成。"
 }
 
+install_rio() {
+  log "检查 Rio"
+
+  # --------------------------------------------------
+  # macOS
+  # --------------------------------------------------
+  if [[ "$OS" == "Darwin" ]]; then
+    if brew list --cask rio >/dev/null 2>&1; then
+      log "Rio 已安装"
+    else
+      log "安装 Rio (macOS)"
+      brew install --cask rio
+    fi
+    return
+  fi
+
+  # --------------------------------------------------
+  # WSL
+  # Rio 是 Windows GUI 程序，因此安装在 Windows Host
+  # --------------------------------------------------
+  if grep -qi microsoft /proc/version 2>/dev/null; then
+    log "安装 Rio (Windows Host via WSL)"
+
+    if ! command -v powershell.exe >/dev/null 2>&1; then
+      log "未找到 powershell.exe，跳过 Rio 安装"
+      return
+    fi
+
+    if powershell.exe -NoProfile -Command \
+      'Get-Command rio -ErrorAction SilentlyContinue' \
+      >/dev/null 2>&1; then
+      log "Rio 已安装"
+    else
+      powershell.exe -NoProfile -Command \
+        'winget install -e --id raphamorim.rio --accept-package-agreements --accept-source-agreements'
+    fi
+
+    return
+  fi
+
+  # --------------------------------------------------
+  # Debian / Ubuntu Linux
+  # --------------------------------------------------
+  if [[ "$OS" == "Linux" ]] && command -v apt-get >/dev/null 2>&1; then
+    if command -v rio >/dev/null 2>&1; then
+      log "Rio 已安装"
+      return
+    fi
+
+    log "安装 Rio (Debian/Ubuntu)"
+
+    local deb_arch
+    local backend
+    local asset_url
+    local tmp_deb
+
+    case "$(uname -m)" in
+    x86_64)
+      deb_arch="amd64"
+      ;;
+    aarch64 | arm64)
+      deb_arch="arm64"
+      ;;
+    *)
+      log "Rio 不支持当前架构: $(uname -m)"
+      return 1
+      ;;
+    esac
+
+    if [[ "${XDG_SESSION_TYPE:-}" == "wayland" ]]; then
+      backend="wayland"
+    else
+      backend="x11"
+    fi
+
+    asset_url="$(
+      curl -fsSL \
+        https://api.github.com/repos/raphamorim/rio/releases/latest |
+        jq -r \
+          --arg arch "$deb_arch" \
+          --arg backend "$backend" \
+          '.assets[]
+           | select(.name
+             | test("rioterm_.*_" + $arch + "_" + $backend + "\\.deb$"))
+           | .browser_download_url' |
+        head -n 1
+    )"
+
+    if [[ -z "$asset_url" ]]; then
+      log "没有找到适合当前系统的 Rio .deb"
+      return 1
+    fi
+
+    tmp_deb="$(mktemp --suffix=.deb)"
+
+    curl -fL "$asset_url" -o "$tmp_deb"
+    sudo apt-get install -y "$tmp_deb"
+
+    rm -f "$tmp_deb"
+
+    # 确保 Rio terminfo 可用
+    if ! infocmp rio >/dev/null 2>&1; then
+      local terminfo
+      terminfo="$(mktemp)"
+
+      curl -fsSL \
+        https://raw.githubusercontent.com/raphamorim/rio/main/misc/rio.terminfo \
+        -o "$terminfo"
+
+      sudo tic -xe xterm-rio,rio "$terminfo"
+      rm -f "$terminfo"
+    fi
+  fi
+}
+
 main() {
   case "$OS" in
   Linux)

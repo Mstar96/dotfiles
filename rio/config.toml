@@ -1,0 +1,25 @@
+confirm-before-quit = false
+copy-on-select = true
+hide-mouse-cursor-when-typing = true
+padding = [10, 12]
+
+[cursor]
+shape = "block"
+blinking = false
+
+[effects]
+trail-cursor = true
+trail-cursor-color = "#CBA6F7"
+trail-cursor-opacity = 0.9
+trail-cursor-decay = [80, 320]
+trail-cursor-start-threshold = 0
+
+[window]
+opacity = 0.94
+opacity-cells = true
+blur = true
+decorations = "transparent"
+
+[navigation]
+mode = "Plain"
+use-split = false
