@@ -1,31 +1,68 @@
-export PATH="/opt/nvim-linux-x86_64/bin:$PATH"
-. "$HOME/.local/bin/env"
-eval "$(starship init zsh)"
+# --------------------------------------------------
+# Homebrew (macOS)
+# --------------------------------------------------
 
-function y() {
-    local tmp cwd
-    tmp="$(mktemp -t "yazi-cwd.XXXXXX")"
+if [[ -x /opt/homebrew/bin/brew ]]; then
+  eval "$(/opt/homebrew/bin/brew shellenv)"
+elif [[ -x /usr/local/bin/brew ]]; then
+  eval "$(/usr/local/bin/brew shellenv)"
+fi
 
-    command yazi "$@" --cwd-file="$tmp"
+# --------------------------------------------------
+# PATH
+# --------------------------------------------------
 
-    IFS= read -r -d '' cwd < "$tmp"
+export PATH="$HOME/.local/bin:$PATH"
 
-    if [[ -n "$cwd" && "$cwd" != "$PWD" ]]; then
-        builtin cd -- "$cwd"
-    fi
-
-    rm -f "$tmp"
-}
-
-# Homebrew
+# Homebrew LLVM / Java
 if command -v brew >/dev/null 2>&1; then
-  eval "$(brew shellenv)"
+  llvm_prefix="$(brew --prefix llvm 2>/dev/null || true)"
+  jdk_prefix="$(brew --prefix openjdk@21 2>/dev/null || true)"
 
-  if [[ -d "$(brew --prefix llvm 2>/dev/null)/bin" ]]; then
-    export PATH="$(brew --prefix llvm)/bin:$PATH"
+  if [[ -n "$llvm_prefix" && -d "$llvm_prefix/bin" ]]; then
+    export PATH="$llvm_prefix/bin:$PATH"
   fi
 
-  if [[ -d "$(brew --prefix openjdk@21 2>/dev/null)/bin" ]]; then
-    export PATH="$(brew --prefix openjdk@21)/bin:$PATH"
+  if [[ -n "$jdk_prefix" && -d "$jdk_prefix/bin" ]]; then
+    export PATH="$jdk_prefix/bin:$PATH"
   fi
 fi
+
+# --------------------------------------------------
+# Editor
+# --------------------------------------------------
+
+export EDITOR=nvim
+export VISUAL=nvim
+
+# --------------------------------------------------
+# Shell tools
+# --------------------------------------------------
+
+if command -v zoxide >/dev/null 2>&1; then
+  eval "$(zoxide init zsh)"
+fi
+
+if command -v starship >/dev/null 2>&1; then
+  eval "$(starship init zsh)"
+fi
+
+# --------------------------------------------------
+# Yazi
+# --------------------------------------------------
+
+function y() {
+  local tmp cwd
+
+  tmp="$(mktemp -t "yazi-cwd.XXXXXX")"
+
+  command yazi "$@" --cwd-file="$tmp"
+
+  IFS= read -r -d '' cwd < "$tmp" || true
+
+  if [[ -n "$cwd" && "$cwd" != "$PWD" ]]; then
+    builtin cd -- "$cwd"
+  fi
+
+  command rm -f -- "$tmp"
+}
