@@ -305,6 +305,37 @@ link_dotfiles() {
   link_dotfile \
     "$DOTFILES_DIR/yazi" \
     "$HOME/.config/yazi"
+  # Rio: macOS / 原生 Linux
+  if [[ "$IS_WSL" == "false" ]]; then
+    link_dotfile \
+      "$DOTFILES_DIR/rio/config.toml" \
+      "$HOME/.config/rio/config.toml"
+  fi
+}
+
+sync_rio_config_wsl() {
+  if [[ "$IS_WSL" != "true" ]]; then
+    return
+  fi
+
+  log "同步 Rio 配置到 Windows"
+
+  local win_localappdata
+  local win_rio_dir
+
+  win_localappdata="$(
+    powershell.exe -NoProfile -Command \
+      '[Environment]::GetFolderPath("LocalApplicationData")' |
+      tr -d '\r'
+  )"
+
+  win_rio_dir="$(wslpath "$win_localappdata")/rio"
+
+  mkdir -p "$win_rio_dir"
+
+  cp -f \
+    "$DOTFILES_DIR/rio/config.toml" \
+    "$win_rio_dir/config.toml"
 }
 
 setup_shell() {
@@ -512,8 +543,11 @@ main() {
   install_yazi
   install_uv
   install_tree_sitter
+  install_rio
 
   link_dotfiles
+  sync_rio_config_wsl
+
   setup_shell
   verify
 }
